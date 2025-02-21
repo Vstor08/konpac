@@ -1,0 +1,9 @@
+[package]
+name = "konpac"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flate2 = "1.0.35"
+serde_yaml = "0.9.34"
+tar = "0.4.43"

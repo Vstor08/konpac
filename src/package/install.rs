@@ -174,15 +174,8 @@ fn create_package_list(
     Ok(())
 }
 
-pub fn install_package_from_file(path: &Path,isroot: bool) {
-    let mut tmpdir = String::new();
-    
-    if isroot {
-        tmpdir = String::from("/tmp")
-    } else {
-        panic!("Please restart as root")
-    }
-
+pub fn install_package_from_file(path: &Path) {
+    let tmpdir = String::from("/tmp");
     let db_path: &Path = Path::new("/var/lib/konpac/packages.db");
     let hash: String = hash_package(&path).unwrap();
     let package_path: &Path = Path::new(&path);

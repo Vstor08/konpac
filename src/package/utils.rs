@@ -53,12 +53,25 @@ pub fn add_package(
     Ok(())
 }
 
-pub fn del_package(name: String) -> Result<()> {
-    // TODO: create delete from database functional
+pub fn del_package(name: String) -> Result<(), Box<dyn Error>> {
+    // Открываем соединение с базой данных
+    let conn = Connection::open("/var/lib/konpac/packages.db")?;
+    
+    // Выполняем SQL-запрос на удаление
+    let rows_affected = conn.execute(
+        "DELETE FROM packages WHERE name = ?1",
+        params![name],
+    )?;
+
+    // Проверяем, что запись действительно была удалена
+    if rows_affected == 0 {
+        return Err(format!("Пакет '{}' не найден в базе данных", name).into());
+    }
+
     Ok(())
 }
 
-pub fn get_package_dir(package_name: String) -> Result<Option<PathBuf>, Box<dyn Error>> {
+pub fn get_package_dir(package_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
     // Подключаемся к базе данных
     let conn = Connection::open(Path::new("/var/lib/konpac/packages.db"))?;
     

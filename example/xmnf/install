@@ -1,2 +1,2 @@
 echo "$1" > /tmp/anusrc
-cp $1/xmnf /usr/bin/xmnf
+cp $1/xmnf $2/usr/bin/xmnf

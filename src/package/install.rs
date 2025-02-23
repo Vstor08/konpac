@@ -7,6 +7,7 @@ extern crate sha2;
 use sha2::{Sha256,Digest};
 use flate2::read::GzDecoder;
 use yaml_rust2::{YamlLoader,YamlEmitter};
+use std::fmt::format;
 use std::path::Path;
 // use std::collections::BTreeMap;
 // use std::fmt::format;
@@ -45,24 +46,25 @@ fn install_script_executor(path: String) {
     let script_path = format!("{}/install",path);
     //let mask_path = format!("{}/mask",path);
     let src_path = format!("{}/src",path);
-    let output = Command::new("bash").arg(script_path).arg(src_path).output().unwrap();
+    let mask_path = format!("{}/mask",path);
+    let output = Command::new("bash").arg(script_path).arg(src_path).arg(mask_path).output().unwrap();
     println!("{:#?}",output)
 
 }
 
-/* fn mask_copyer(path: String) -> Result<(), Box<dyn std::error::Error>> {
+ fn mask_copyer(path: String) -> Result<(), Box<dyn std::error::Error>> {
     let src = Path::new(&path).join("mask");
     let dst = Path::new("/");
 
     let options = CopyOptions::new()
         .overwrite(true)
+        .content_only(true)
         .copy_inside(true);
 
     copy(src, dst, &options)?;
     Ok(())
 
-    FIXME: Fix mask_copyer
-} */
+} 
 
 
 fn hash_package(path: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -114,6 +116,6 @@ pub fn install_package_from_file(path: &str,isroot: bool) {
     let hash: String = hash_package(path).unwrap();
     let name_package = parse_manifest(format!("/tmp/{}/{}",hash,remove_all_extensions(path.to_string())));
     install_script_executor(format!("{}/{}/{}",tmpdir,hash,remove_all_extensions(path.to_string())));
-    //mask_copyer(format!("{}/{}",tmpdir,hash)).expect("sex");
+    mask_copyer(format!("{}/{}/{}",tmpdir,hash,remove_all_extensions(path.to_string()))).expect("sex");
     write_to_bd(name_package);
 }

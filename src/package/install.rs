@@ -5,7 +5,6 @@ extern crate fs_extra;
 extern crate sha2;
 
 
-
 use sha2::{Sha256,Digest};
 use flate2::read::GzDecoder;
 use yaml_rust2::YamlLoader;

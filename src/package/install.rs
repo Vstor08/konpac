@@ -6,18 +6,15 @@ extern crate sha2;
 
 use sha2::{Sha256,Digest};
 use flate2::read::GzDecoder;
-use yaml_rust2::{YamlLoader,YamlEmitter};
-use std::fmt::format;
+use yaml_rust2::YamlLoader;
 use std::path::Path;
-// use std::collections::BTreeMap;
-// use std::fmt::format;
-use std::{fs, path};
+use std::fs;
 use std::fs::{OpenOptions,File};
 use tar::Archive;
 use std::process::Command;
 use std::io::{Read,Write};
 use fs_extra::dir::{copy,CopyOptions};
-// use std::path::Path;
+
 
 fn remove_all_extensions(path_name: String) -> String {
     let path = Path::new(&path_name);
@@ -29,10 +26,8 @@ fn remove_all_extensions(path_name: String) -> String {
 }
 
 
-fn parse_manifest(path: String) -> String {
-    println!("{}",path);
-    let manifest_path = format!("{}/package.yml",path);
-    println!("{}",manifest_path);
+fn parse_manifest(path: &Path) -> String {
+    let manifest_path: &Path = &path.join(Path::new("/package.yml"));
     let manifest_text = fs::read_to_string(manifest_path).expect("error in read manifest");
     let manifest = YamlLoader::load_from_str(&manifest_text).unwrap();
     let name_package = format!("{}",&manifest[0]["name"].as_str().unwrap());
@@ -42,17 +37,17 @@ fn parse_manifest(path: String) -> String {
 
 
 
-fn install_script_executor(path: String) {
-    let script_path = format!("{}/install",path);
+fn install_script_executor(path: &Path) {
+    let script_path = &path.join(Path::new("/install"));
     //let mask_path = format!("{}/mask",path);
-    let src_path = format!("{}/src",path);
-    let mask_path = format!("{}/mask",path);
+    let src_path = &path.join(Path::new("/src"));
+    let mask_path = &path.join(Path::new("/mask"));
     let output = Command::new("bash").arg(script_path).arg(src_path).arg(mask_path).output().unwrap();
     println!("{:#?}",output)
 
 }
 
- fn mask_copyer(path: String) -> Result<(), Box<dyn std::error::Error>> {
+ fn mask_copyer(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let src = Path::new(&path).join("mask");
     let dst = Path::new("/");
 
@@ -67,8 +62,8 @@ fn install_script_executor(path: String) {
 } 
 
 
-fn hash_package(path: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let mut file = File::open(format!("{}",path))?;
+fn hash_package(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
+    let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 4096];
 
@@ -85,12 +80,11 @@ fn hash_package(path: &str) -> Result<String, Box<dyn std::error::Error>> {
     Ok(format!("{:02x}",hash))
 }
 
-fn unpack_package(path: &str,out: &str) -> Result<(), std::io::Error> {
+fn unpack_package(path: &Path,out: &Path) -> Result<(), std::io::Error> {
     /* Функция распоковки пакета во временную папку */
     let package = File::open(path)?;
     let unzip_pkg = GzDecoder::new(package);
     let mut archive = Archive::new(unzip_pkg);
-    let out = format!("{}/{}",out,hash_package(path).unwrap());
     archive.unpack(out)?;
 
     Ok(())
@@ -105,17 +99,30 @@ fn write_to_bd(name: String) -> std::io::Result<()>{
     Ok(())
 }
 
-pub fn install_package_from_file(path: &str,isroot: bool) {
+fn create_files_list(path: &Path) {
+
+}
+
+pub fn install_package_from_file(path: &Path,isroot: bool) {
     let mut tmpdir = String::new();
+    
     if isroot {
         tmpdir = String::from("/tmp")
     } else {
         panic!("Please restart as root")
     }
-    unpack_package(path, &tmpdir).expect("error in unpack package");
-    let hash: String = hash_package(path).unwrap();
-    let name_package = parse_manifest(format!("/tmp/{}/{}",hash,remove_all_extensions(path.to_string())));
-    install_script_executor(format!("{}/{}/{}",tmpdir,hash,remove_all_extensions(path.to_string())));
-    mask_copyer(format!("{}/{}/{}",tmpdir,hash,remove_all_extensions(path.to_string()))).expect("sex");
-    write_to_bd(name_package);
+
+    let hash: String = hash_package(&path).unwrap();
+    let package_path: &Path = Path::new(&path);
+    let package_file_name: String = remove_all_extensions(package_path.to_str().unwrap().to_string());
+    let temp_path_str = format!("/{}/{}/{}", tmpdir, hash, remove_all_extensions(package_file_name));
+    let temp_package_path: &Path = Path::new(&temp_path_str);
+    let output_path_str = format!("/{}/{}/",tmpdir,hash);
+    let output_path: &Path = Path::new(&output_path_str);
+    let name_package = parse_manifest(&temp_package_path);
+
+    unpack_package(package_path, output_path).expect("error in unpack package");
+    install_script_executor(&temp_package_path);
+    mask_copyer(&temp_package_path).expect("sex");
+    let _ = write_to_bd(name_package);
 }

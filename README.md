@@ -9,8 +9,8 @@ Konsk Package (kpkg) this just .tar.gz archive with structure
 ```
 Package
 ├── package.yml
-└── install
-└── src
+├── install
+├── src
 └── mask
 ```
 

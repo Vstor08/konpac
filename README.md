@@ -1,7 +1,9 @@
 # konpac
 package manager for KonskOS
 # install
-download binary from releases and copy to /bin or /usr/bin
+clone repo ```git clone https://github.com/Vstor08/konpac.git```
+move to dir with konpac ```cd konpac```
+install ```sudo make install```
 # usage
 ```konpac -i path/to/package.kpkg```
 # Package tree

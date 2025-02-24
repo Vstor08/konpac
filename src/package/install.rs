@@ -16,18 +16,12 @@ use std::process::Command;
 use std::io::{self,Read,Write};
 use std::error::Error;
 use fs_extra::dir::{copy,CopyOptions};
+use crate::package;
 use crate::package::utils::{PackageManifest,add_package};
+use crate::repo::utils::{Repository, get_repos,search_pkg,fetch_url};
 use walkdir::WalkDir;
-
-
-fn remove_all_extensions(path_name: String) -> String {
-    let path = Path::new(&path_name);
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .map(|name| name.split('.').next().unwrap_or(name))
-        .unwrap_or_default()
-        .to_string()
-}
+use futures::future::BoxFuture;
+use futures::FutureExt;
 
 
 fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Error>> {
@@ -46,17 +40,31 @@ fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Er
     let root = docs.first()
         .ok_or("Empty YAML document")?;
 
+        let name = root["name"]
+        .as_str()
+        .ok_or("Missing required field 'name'")?
+        .to_string();
+
+    // Извлекаем поле "version"
+    let version = root["version"]
+        .as_str()
+        .ok_or("Missing required field 'version'")?
+        .to_string();
+
+    // Извлекаем поле "depens" (если оно есть)
+    let depens = root["depens"]
+        .as_vec()
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_else(Vec::new);
     // Извлекаем обязательные поля
     Ok(PackageManifest {
-        name: root["name"]
-            .as_str()
-            .ok_or("Missing required field 'name'")?
-            .to_string(),
-            
-        version: root["version"]
-            .as_str()
-            .ok_or("Missing required field 'version'")?
-            .to_string(),
+        name,
+        version,
+        depens
     })
 }
 
@@ -173,20 +181,20 @@ fn create_package_list(
     Ok(())
 }
 
-pub fn install_package_from_file(path: &Path) {
+pub async fn install_package_from_file(path: &Path) {
     let tmpdir = String::from("/tmp");
     let db_path: &Path = Path::new("/var/lib/konpac/packages.db");
     let hash: String = hash_package(&path).unwrap();
     let package_path: &Path = Path::new(&path);
-    let package_file_name: String = remove_all_extensions(package_path.to_str().unwrap().to_string());
-    let temp_path_str = format!("{}/{}/{}", tmpdir, hash, remove_all_extensions(package_file_name));
+    //let package_file_name: String = remove_all_extensions(package_path.to_str().unwrap().to_string());
+    let temp_path_str = format!("{}/{}", tmpdir, hash);
     let temp_package_path: &Path = Path::new(&temp_path_str);
     let output_path_str = format!("{}/{}",tmpdir,hash);
     let output_path: &Path = Path::new(&output_path_str);
     
 
     match unpack_package(package_path, output_path) {
-        Ok(a) => { println!("Unpacking Succes") },
+        Ok(_) => { println!("Unpacking Succes") },
         Err(e) => {eprintln!("Error in unpack: {}",e)}
     };
     let package = match parse_manifest(&temp_package_path) {
@@ -196,6 +204,9 @@ pub fn install_package_from_file(path: &Path) {
             panic!("Error in read manifest")
         },
     };
+    for depen in &package.depens {
+        Box::pin(install_from_repo(depen.to_string())).await;
+    }
     install_script_executor(&temp_package_path);
     mask_copyer(&temp_package_path).expect("sex");
     let var_pacakge_path = match create_package_dir(&package) {
@@ -205,7 +216,44 @@ pub fn install_package_from_file(path: &Path) {
     println!("{:?}",var_pacakge_path);
     create_package_list(&temp_package_path.join("/mask"), &var_pacakge_path);
     match add_package(&package,&var_pacakge_path,&db_path) {
-        Ok(a) => { println!("Database write Succes") },
+        Ok(_) => { println!("Database write Succes") },
         Err(e) => { eprintln!("Error in write Data to db: {}",e) }
     };
+}
+
+pub async fn install_from_repo(name: String) -> Result<(), Box<dyn Error>> {
+    // Получать писюн репозиториев
+    let repositories = get_repos(Path::new("/etc/konpac/repos"));
+
+    // Ищем член в репозиториях
+    let mut package = None;
+    for repo in repositories {
+        match search_pkg(name.clone(), repo).await {
+            Ok(pkg) => {
+                package = Some(pkg);
+                break; // Выходим из цикла, если член найден
+            }
+            Err(e) => {
+                eprintln!("Error searching in repository: {}", e);
+                continue; // Продолжаем поиск в следующем репозитории
+            }
+        }
+    }
+    println!("{:?}",package);
+    // Если пакет не найден, возвращаем писюнчик
+    let package = match package {
+        Some(pkg) => pkg,
+        None => return Err("Package not found in any repository".into()),
+    };
+
+    // Формируем имя файла для сохранени
+    let package_file_name = format!("/tmp/{}-{}.kpkg", package.name, package.version);
+    let package_file_path = Path::new(&package_file_name);
+
+    // Загружаем пакет
+    fetch_url(package.url, &package_file_path).await?;
+    println!("{:?}",package_file_name);
+    install_package_from_file(&package_file_path).await;
+    println!("Package downloaded to: {:#?}", package_file_name);
+    Ok(())
 }

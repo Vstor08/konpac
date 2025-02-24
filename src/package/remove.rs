@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::io::{self, BufRead};
 use super::utils::{del_package,get_package_dir};
 
-//TODO: Create remove functional
+
 
 pub fn uninstall_package(package_name: String) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Получаем путь к директории пакета

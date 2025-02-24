@@ -12,6 +12,7 @@ use std::error::Error;
 pub struct PackageManifest {
     pub name: String,
     pub version: String,
+    pub depens: Vec<String>
 }
 
 pub fn is_elevated() -> bool {

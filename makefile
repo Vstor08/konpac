@@ -4,6 +4,8 @@ BIN_NAME := konpac
 TARGET_DIR := ./target/release
 INSTALL_DIR := /usr/bin
 DATA_DIR := /var/lib/konpac
+ETC_DIR := /etc/konpac
+REPOS_FILE = $(ETC_DIR)/repos
 DB_FILE := $(DATA_DIR)/packages.db
 PACKAGES_DIR := $(DATA_DIR)/packages
 
@@ -20,6 +22,8 @@ install: build
 	fi
 	@install -Dm755 $(TARGET_DIR)/$(BIN_NAME) $(INSTALL_DIR)/$(BIN_NAME)
 	@mkdir -p $(PACKAGES_DIR)
+	@mkdir -p $(ETC_DIR)
+	@touch $(REPOS_FILE)
 	@touch $(DB_FILE)
 	@chmod 644 $(DB_FILE)
 	@echo "Установка завершена!"

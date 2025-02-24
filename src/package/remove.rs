@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::io::{self, BufRead};
 use super::utils::{del_package,get_package_dir};
 

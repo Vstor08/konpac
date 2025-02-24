@@ -1,11 +1,11 @@
 
 use std::{fs::{self, File}, path::{Path,PathBuf}};
 use walkdir::WalkDir;
-use rusqlite::{params, Connection, Params, Result};
-use crate::repo::utils::DB_Package_Entry;
+use rusqlite::{params, Connection, Result};
+use crate::repo::utils::DbPackageEntry;
 
 
-fn write_repo_db(package: DB_Package_Entry,db_path: &Path) -> Result<()> {
+fn write_repo_db(package: DbPackageEntry,db_path: &Path) -> Result<()> {
     let conn = Connection::open(db_path)?;
 
     conn.execute(
@@ -33,7 +33,7 @@ fn write_repo_db(package: DB_Package_Entry,db_path: &Path) -> Result<()> {
 
 pub fn generate_repo(path: PathBuf) {
     let db_path = path.join("packages.db");
-    let mut file = File::create(&db_path);
+    let _file = File::create(&db_path);
     for entry in WalkDir::new(path)
         .into_iter()
         .filter_map(|e| e.ok())
@@ -57,12 +57,12 @@ pub fn generate_repo(path: PathBuf) {
                 .unwrap_or(""); // Если разделение не удалось, используем пустую строку
             let absolute_path = fs::canonicalize(entry.path()).unwrap();
             println!("{:?}", absolute_path);
-            let package: DB_Package_Entry = DB_Package_Entry{
+            let package: DbPackageEntry = DbPackageEntry{
                 name: prefix.to_string(),
                 version: version.to_string(),
                 url: format!("file://{}",&absolute_path.to_str().unwrap())
             };
             
-            write_repo_db(package, &db_path);
+            let _ = write_repo_db(package, &db_path);
         }
 }

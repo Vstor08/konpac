@@ -1,9 +1,9 @@
 extern crate reqwest;
 use std::env::consts::ARCH;
-use std::io::{Cursor, Write};
-use std::{fs,io,path::{Path, PathBuf},result::Result,error::Error};
+use std::io::Cursor;
+use std::{fs,io,path::Path,result::Result};
 use ini::Ini;
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row};
 use url::Url;
 
 //type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -13,14 +13,14 @@ pub struct Repository {
 }
 
 #[derive(Debug)]
-pub struct DB_Package_Entry {
+pub struct DbPackageEntry {
     pub name: String,
     pub version: String,
     pub url: String
 }
-impl DB_Package_Entry {
+impl DbPackageEntry {
     fn from_row(row: &Row) -> Result<Self,Box<dyn std::error::Error>> {
-        Ok(DB_Package_Entry {
+        Ok(DbPackageEntry {
             name: row.get(0)?,
             version: row.get(1)?,
             url: row.get(2)?
@@ -67,7 +67,7 @@ pub async fn fetch_url(url: String, file_name: &Path) -> Result<(), Box<dyn std:
     Ok(())
 }
 
-fn find_package(db_path: &Path, package_name: &str) -> Result<Option<DB_Package_Entry>,Box<dyn std::error::Error>> {
+fn find_package(db_path: &Path, package_name: &str) -> Result<Option<DbPackageEntry>,Box<dyn std::error::Error>> {
     let conn = Connection::open(db_path)?;
     
     // Меняем запрос на выбор всех полей
@@ -76,13 +76,13 @@ fn find_package(db_path: &Path, package_name: &str) -> Result<Option<DB_Package_
 
     if let Some(row) = rows.next()? {
         // Используем наш метод преобразования
-        Ok(Some(DB_Package_Entry::from_row(&row)?))
+        Ok(Some(DbPackageEntry::from_row(&row)?))
     } else {
         Ok(None)
     }
 }
 
-pub async fn search_pkg(pkg_name: String, repo: Repository) -> std::result::Result<DB_Package_Entry, Box<dyn std::error::Error>> {
+pub async fn search_pkg(pkg_name: String, repo: Repository) -> std::result::Result<DbPackageEntry, Box<dyn std::error::Error>> {
     let db_str_path = format!("/tmp/{}.db", repo.name);
     let db_path = Path::new(&db_str_path);
     

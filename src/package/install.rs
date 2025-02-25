@@ -1,25 +1,25 @@
 // Подключаем внешние библиотеки
 extern crate flate2;
-extern crate yaml_rust2;
-extern crate tar;
 extern crate fs_extra;
 extern crate sha2;
+extern crate tar;
+extern crate yaml_rust2;
 
 // Импортируем необходимые модули и функции
-use sha2::{Sha256, Digest};
+use crate::package::utils::{add_package, PackageManifest};
+use crate::repo::utils::{fetch_url, get_repos, search_pkg};
 use flate2::read::GzDecoder;
-use yaml_rust2::YamlLoader;
-use std::path::{Path, PathBuf};
+use fs_extra::dir::{copy, CopyOptions};
+use sha2::{Digest, Sha256};
+use std::error::Error;
 use std::fs;
 use std::fs::File;
-use tar::Archive;
-use std::process::Command;
 use std::io::{self, Read, Write};
-use std::error::Error;
-use fs_extra::dir::{copy, CopyOptions};
-use crate::package::utils::{PackageManifest, add_package};
-use crate::repo::utils::{get_repos, search_pkg, fetch_url};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use tar::Archive;
 use walkdir::WalkDir;
+use yaml_rust2::YamlLoader;
 
 // Функция для парсинга manifest-файла пакета
 fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Error>> {
@@ -33,11 +33,10 @@ fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Er
         .map_err(|e| format!("Failed to read manifest: {}", e))?;
 
     // Парсим YAML
-    let docs = YamlLoader::load_from_str(&content)
-        .map_err(|e| format!("Invalid YAML syntax: {}", e))?;
+    let docs =
+        YamlLoader::load_from_str(&content).map_err(|e| format!("Invalid YAML syntax: {}", e))?;
 
-    let root = docs.first()
-        .ok_or("Empty YAML document")?;
+    let root = docs.first().ok_or("Empty YAML document")?;
 
     // Извлекаем поле "name"
     let name = root["name"]
@@ -155,10 +154,7 @@ fn unpack_package(path: &Path, out: &Path) -> Result<(), std::io::Error> {
 }
 
 // Функция для создания списка файлов пакета
-fn create_package_list(
-    mask_root: &Path,
-    package_dir: &Path,
-) -> io::Result<()> {
+fn create_package_list(mask_root: &Path, package_dir: &Path) -> Result<(), std::io::Error> {
     // Создаем целевую директорию
     fs::create_dir_all(package_dir)?;
 
@@ -181,7 +177,8 @@ fn create_package_list(
         .filter(|e| e.file_type().is_file())
     {
         // Получаем относительный путь
-        let rel_path = entry.path()
+        let rel_path = entry
+            .path()
             .strip_prefix(mask_root)
             .unwrap()
             .to_string_lossy();
@@ -238,7 +235,14 @@ pub async fn install_package_from_file(path: &Path) {
     println!("{:?}", var_package_path);
 
     // Создаем список файлов пакета
-    let _ = create_package_list(&temp_package_path.join("/mask"), &var_package_path);
+    match create_package_list(&temp_package_path.join("mask"), &var_package_path) {
+        Ok(()) => {
+            println!("pacakge list succes created");
+        }
+        Err(e) => {
+            eprintln!("Error in creating package list: {}", e)
+        }
+    };
 
     // Добавляем пакет в базу данных
     match add_package(&package, &var_package_path, &db_path) {

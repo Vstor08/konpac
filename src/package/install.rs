@@ -158,7 +158,7 @@ fn unpack_package(path: &Path, out: &Path) -> Result<(), std::io::Error> {
 fn create_package_list(
     mask_root: &Path,
     package_dir: &Path,
-) -> io::Result<()> {
+) -> Result<(), std::io::Error> {
     // Создаем целевую директорию
     fs::create_dir_all(package_dir)?;
 
@@ -238,7 +238,10 @@ pub async fn install_package_from_file(path: &Path) {
     println!("{:?}", var_package_path);
 
     // Создаем список файлов пакета
-    let _ = create_package_list(&temp_package_path.join("/mask"), &var_package_path);
+    match create_package_list(&temp_package_path.join("mask"), &var_package_path) {
+        Ok(_) => { println!("Package list created succes") },
+        Err(e) => { eprintln!("Error in creating package list: {}",e); panic!() }
+    };
 
     // Добавляем пакет в базу данных
     match add_package(&package, &var_package_path, &db_path) {

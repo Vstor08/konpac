@@ -1,11 +1,25 @@
-extern crate libc;
-extern crate rusqlite;
 
 
-use rusqlite::{Connection, params, Result};
+
+use rusqlite::{Connection, params, Result,Row};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 
+#[derive(Debug)]
+pub struct DbPackageEntry {
+    pub name: String,
+    pub version: String,
+    pub path: String
+}
+impl DbPackageEntry {
+    fn from_row(row: &Row) -> Result<Self,Box<dyn std::error::Error>> {
+        Ok(DbPackageEntry {
+            name: row.get(0)?,
+            version: row.get(1)?,
+            path: row.get(2)?
+        })
+    }
+}
 
 
 #[derive(Debug)]
@@ -70,6 +84,24 @@ pub fn del_package(name: String) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+pub fn check_package_local(db_path: &Path,
+    package_name: &str,
+) -> Result<Option<DbPackageEntry>, Box<dyn std::error::Error>> {
+    let conn = Connection::open(db_path)?;
+
+    // Ищем последнюю версию пакета
+    let mut stmt = conn.prepare(
+        "SELECT name, version, path FROM packages WHERE name = ?1 ORDER BY version DESC LIMIT 1",
+    )?;
+    let mut rows = stmt.query([package_name])?;
+
+    if let Some(row) = rows.next()? {
+        Ok(Some(DbPackageEntry::from_row(&row)?))
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn get_package_dir(package_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {

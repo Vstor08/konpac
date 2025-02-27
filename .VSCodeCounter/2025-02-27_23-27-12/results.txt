@@ -1,0 +1,53 @@
+Date : 2025-02-27 23:27:12
+Directory : /home/vadim/konpac
+Total : 15 files,  683 codes, 110 comments, 150 blanks, all 943 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Rust     |          9 |        622 |        109 |        138 |        869 |
+| Makefile |          1 |         36 |          1 |          7 |         44 |
+| Markdown |          1 |         17 |          0 |          2 |         19 |
+| YAML     |          4 |          8 |          0 |          3 |         11 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                               | files      | code       | comment    | blank      | total      |
++----------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                  |         15 |        683 |        110 |        150 |        943 |
+| . (Files)                                          |          2 |         53 |          1 |          9 |         63 |
+| example                                            |          4 |          8 |          0 |          3 |         11 |
+| example/lmms                                       |          1 |          4 |          0 |          0 |          4 |
+| example/package                                    |          1 |          1 |          0 |          1 |          2 |
+| example/tmp                                        |          1 |          1 |          0 |          1 |          2 |
+| example/tmp/package                                |          1 |          1 |          0 |          1 |          2 |
+| example/xmnf                                       |          1 |          2 |          0 |          1 |          3 |
+| src                                                |          9 |        622 |        109 |        138 |        869 |
+| src (Files)                                        |          3 |         73 |         26 |          9 |        108 |
+| src/package                                        |          4 |        374 |         73 |         95 |        542 |
+| src/repo                                           |          2 |        175 |         10 |         34 |        219 |
++----------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                           | language | code       | comment    | blank      | total      |
++----------------------------------------------------+----------+------------+------------+------------+------------+
+| /home/vadim/konpac/README.md                       | Markdown |         17 |          0 |          2 |         19 |
+| /home/vadim/konpac/example/lmms/package.yml        | YAML     |          4 |          0 |          0 |          4 |
+| /home/vadim/konpac/example/package/package.yml     | YAML     |          1 |          0 |          1 |          2 |
+| /home/vadim/konpac/example/tmp/package/package.yml | YAML     |          1 |          0 |          1 |          2 |
+| /home/vadim/konpac/example/xmnf/package.yml        | YAML     |          2 |          0 |          1 |          3 |
+| /home/vadim/konpac/makefile                        | Makefile |         36 |          1 |          7 |         44 |
+| /home/vadim/konpac/src/main.rs                     | Rust     |         67 |         26 |          9 |        102 |
+| /home/vadim/konpac/src/package.rs                  | Rust     |          4 |          0 |          0 |          4 |
+| /home/vadim/konpac/src/package/depencies.rs        | Rust     |         75 |          9 |         15 |         99 |
+| /home/vadim/konpac/src/package/install.rs          | Rust     |        200 |         49 |         49 |        298 |
+| /home/vadim/konpac/src/package/remove.rs           | Rust     |         32 |          4 |          9 |         45 |
+| /home/vadim/konpac/src/package/utils.rs            | Rust     |         67 |         11 |         22 |        100 |
+| /home/vadim/konpac/src/repo.rs                     | Rust     |          2 |          0 |          0 |          2 |
+| /home/vadim/konpac/src/repo/gen.rs                 | Rust     |         59 |          0 |          9 |         68 |
+| /home/vadim/konpac/src/repo/utils.rs               | Rust     |        116 |         10 |         25 |        151 |
+| Total                                              |          |        683 |        110 |        150 |        943 |
++----------------------------------------------------+----------+------------+------------+------------+------------+

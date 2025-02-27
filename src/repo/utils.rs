@@ -5,6 +5,9 @@ use std::{fs,io,path::Path,result::Result};
 use ini::Ini;
 use rusqlite::{Connection, Row};
 use url::Url;
+use version_compare::Version;
+
+
 
 //type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 pub struct Repository {
@@ -67,20 +70,63 @@ pub async fn fetch_url(url: String, file_name: &Path) -> Result<(), Box<dyn std:
     Ok(())
 }
 
-fn find_package(db_path: &Path, package_name: &str) -> Result<Option<DbPackageEntry>,Box<dyn std::error::Error>> {
+fn find_package(
+    db_path: &Path,
+    package_name: &str,
+) -> Result<Option<DbPackageEntry>, Box<dyn std::error::Error>> {
     let conn = Connection::open(db_path)?;
-    
-    // Меняем запрос на выбор всех полей
-    let mut stmt = conn.prepare("SELECT name, version, path FROM packages WHERE name = ?1")?;
+
+    // Ищем последнюю версию пакета
+    let mut stmt = conn.prepare(
+        "SELECT name, version, path FROM packages WHERE name = ?1 ORDER BY version DESC LIMIT 1",
+    )?;
     let mut rows = stmt.query([package_name])?;
 
     if let Some(row) = rows.next()? {
-        // Используем наш метод преобразования
         Ok(Some(DbPackageEntry::from_row(&row)?))
     } else {
         Ok(None)
     }
 }
+
+// Функция для поиска пакета по имени и версии
+fn find_package_with_ver(
+    db_path: &Path,
+    package_name: &str,
+    version: &str,
+) -> Result<Option<DbPackageEntry>, Box<dyn std::error::Error>> {
+    let conn = Connection::open(db_path)?;
+
+    // Ищем все версии пакета
+    let mut stmt = conn.prepare("SELECT name, version, path FROM packages WHERE name = ?1")?;
+    let mut rows = stmt.query([package_name])?;
+
+    let min_version = Version::from(version).ok_or("Invalid version format")?;
+    let mut latest_entry: Option<DbPackageEntry> = None;
+
+    while let Some(row) = rows.next()? {
+        let entry = DbPackageEntry::from_row(&row)?;
+        let entry_version = Version::from(&entry.version).ok_or("Invalid version format in database")?;
+
+        // Если версия пакета >= указанной версии
+        if entry_version >= min_version {
+            // Обновляем latest_entry, если текущая версия новее
+            if let Some(ref latest) = latest_entry {
+                let latest_version = Version::from(&latest.version).ok_or("Invalid version format in database")?;
+                if entry_version > latest_version {
+                    latest_entry = Some(entry);
+                }
+            } else {
+                latest_entry = Some(entry);
+            }
+        }
+    }
+
+    Ok(latest_entry)
+}
+
+
+
 
 pub async fn search_pkg(pkg_name: String, repo: Repository) -> std::result::Result<DbPackageEntry, Box<dyn std::error::Error>> {
     let db_str_path = format!("/tmp/{}.db", repo.name);
@@ -96,6 +142,35 @@ pub async fn search_pkg(pkg_name: String, repo: Repository) -> std::result::Resu
 
     // Ищем пакет в базе данных
     let package = find_package(&db_path, &pkg_name)?;
+    
+    // Обрабатываем результат поиска
+    let package = match package {
+        Some(pkg) => pkg,
+        None => {
+            eprintln!("Пакет '{}' не найден в репозитории {}", pkg_name, repo.name);
+            panic!()
+        }
+    };
+
+
+    Ok(package)
+}
+ 
+
+pub async fn search_pkg_with_ver(pkg_name: String, repo: Repository, version: &str) -> std::result::Result<DbPackageEntry, Box<dyn std::error::Error>> {
+    let db_str_path = format!("/tmp/{}.db", repo.name);
+    let db_path = Path::new(&db_str_path);
+    
+    let db_link = format!("{}/packages.db",repo.url);
+
+    // Загружаем базу данных репозитория
+    match fetch_url(db_link, &db_path).await {
+        Ok(_) => { println!("fetch file success") },
+        Err(e) => { eprintln!("Error in fetch file: {}",e)} 
+    };
+
+    // Ищем пакет в базе данных
+    let package = find_package_with_ver(&db_path, &pkg_name,version)?;
     
     // Обрабатываем результат поиска
     let package = match package {

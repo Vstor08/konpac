@@ -17,9 +17,12 @@ use std::process::Command;
 use std::io::{self, Read, Write};
 use std::error::Error;
 use fs_extra::dir::{copy, CopyOptions};
-use crate::package::utils::{PackageManifest, add_package};
+use crate::package;
+use crate::package::utils::{PackageManifest, add_package,check_package_local,DbPackageEntry};
 use crate::repo::utils::{get_repos, search_pkg, fetch_url};
+use crate::package::depencies::Dependency;
 use walkdir::WalkDir;
+use version_compare::Version;
 
 // Функция для парсинга manifest-файла пакета
 fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Error>> {
@@ -219,9 +222,19 @@ pub async fn install_package_from_file(path: &Path) {
         }
     };
 
+    //  Парсим зависимости пакета
+    
+
     // Устанавливаем зависимости
     for depen in &package.depens {
-        let _ = Box::pin(install_from_repo(depen.to_string())).await;
+        let depency: Dependency = Dependency::from_str(&depen).unwrap();
+        let package: DbPackageEntry = check_package_local(&db_path, &depency.name).unwrap().unwrap();
+        if Version::from(&package.version).unwrap() == depency.version {
+
+        } else {
+            let _ = Box::pin(install_from_repo(depency.name)).await;
+        }
+        
     }
 
     // Выполняем скрипт установки

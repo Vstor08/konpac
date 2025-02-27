@@ -15,7 +15,9 @@ rusqlite = {version = "0.33.0", features = ["bundled"]}
 rust-ini = "0.21.1"
 sha2 = "0.10.8"
 tar = "0.4.43"
+thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["full"] }
 url = "2.5.4"
+version-compare = "0.2.0"
 walkdir = "2.5.0"
 yaml-rust2 = "0.10.0"

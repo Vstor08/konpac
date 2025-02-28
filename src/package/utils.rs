@@ -98,9 +98,16 @@ pub fn check_package_local(db_path: &Path,
     let mut rows = stmt.query([package_name])?;
 
     if let Some(row) = rows.next()? {
-        Ok(Some(DbPackageEntry::from_row(&row)?))
+        Ok(Some(DbPackageEntry::from_row(&row).unwrap()))
     } else {
         Ok(None)
+    }
+}
+
+pub fn check_exist_pkg(db_path: &Path, package_name: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    match check_package_local(db_path, package_name)? {
+        Some(_) => Ok(true),  // Пакет найден
+        None => Ok(false),    // Пакет не найден
     }
 }
 

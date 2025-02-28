@@ -18,9 +18,10 @@ use std::io::{self, Read, Write};
 use std::error::Error;
 use fs_extra::dir::{copy, CopyOptions};
 use crate::package;
-use crate::package::utils::{PackageManifest, add_package,check_package_local,DbPackageEntry};
+use crate::package::utils::{add_package, check_exist_pkg, check_package_local, DbPackageEntry, PackageManifest};
 use crate::repo::utils::{get_repos, search_pkg, fetch_url};
 use crate::package::depencies::Dependency;
+use crate::consts::paths::{TMP_PATH,DB_PATH};
 use walkdir::WalkDir;
 use version_compare::Version;
 
@@ -198,8 +199,8 @@ fn create_package_list(
 
 // Функция для установки пакета из файла
 pub async fn install_package_from_file(path: &Path) {
-    let tmpdir = String::from("/tmp");
-    let db_path: &Path = Path::new("/var/lib/konpac/packages.db");
+    let tmpdir = String::from(TMP_PATH);
+    let db_path: &Path = Path::new(DB_PATH);
     let hash: String = hash_package(&path).unwrap();
     let package_path: &Path = Path::new(&path);
     let temp_path_str = format!("{}/{}", tmpdir, hash);
@@ -223,12 +224,16 @@ pub async fn install_package_from_file(path: &Path) {
     };
 
     //  Парсим зависимости пакета
-    
+    if check_exist_pkg(db_path, &package.name).unwrap() {
+        println!("Пакет уже установлен");
+        return;
+    }
 
     // Устанавливаем зависимости
     for depen in &package.depens {
         let depency: Dependency = Dependency::from_str(&depen).unwrap();
         let package: DbPackageEntry = check_package_local(&db_path, &depency.name).unwrap().unwrap();
+        // TODO: Сделать адекватный контроль версий
         if Version::from(&package.version).unwrap() == depency.version {
 
         } else {
@@ -265,6 +270,11 @@ pub async fn install_package_from_file(path: &Path) {
 
 // Функция для установки пакета из репозитория
 pub async fn install_from_repo(name: String) -> Result<(), Box<dyn Error>> {
+    let db_path: &Path = Path::new(DB_PATH);
+    if check_exist_pkg(db_path, &name).unwrap() {
+        println!("Пакет уже установлен");
+        return Ok(());
+    }
     // Получаем список репозиториев
     let repositories = get_repos(Path::new("/etc/konpac/repos"));
 

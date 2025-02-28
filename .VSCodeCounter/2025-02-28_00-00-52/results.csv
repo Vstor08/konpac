@@ -1,0 +1,17 @@
+"filename", "language", "Markdown", "Makefile", "Rust", "YAML", "comment", "blank", "total"
+"/home/vadim/konpac/README.md", "Markdown", 17, 0, 0, 0, 0, 2, 19
+"/home/vadim/konpac/example/lmms/package.yml", "YAML", 0, 0, 0, 4, 0, 0, 4
+"/home/vadim/konpac/example/package/package.yml", "YAML", 0, 0, 0, 1, 0, 1, 2
+"/home/vadim/konpac/example/tmp/package/package.yml", "YAML", 0, 0, 0, 1, 0, 1, 2
+"/home/vadim/konpac/example/xmnf/package.yml", "YAML", 0, 0, 0, 2, 0, 1, 3
+"/home/vadim/konpac/makefile", "Makefile", 0, 36, 0, 0, 1, 7, 44
+"/home/vadim/konpac/src/main.rs", "Rust", 0, 0, 67, 0, 26, 9, 102
+"/home/vadim/konpac/src/package.rs", "Rust", 0, 0, 4, 0, 0, 0, 4
+"/home/vadim/konpac/src/package/depencies.rs", "Rust", 0, 0, 75, 0, 9, 15, 99
+"/home/vadim/konpac/src/package/install.rs", "Rust", 0, 0, 207, 0, 50, 50, 307
+"/home/vadim/konpac/src/package/remove.rs", "Rust", 0, 0, 32, 0, 4, 9, 45
+"/home/vadim/konpac/src/package/utils.rs", "Rust", 0, 0, 96, 0, 12, 25, 133
+"/home/vadim/konpac/src/repo.rs", "Rust", 0, 0, 2, 0, 0, 0, 2
+"/home/vadim/konpac/src/repo/gen.rs", "Rust", 0, 0, 59, 0, 0, 9, 68
+"/home/vadim/konpac/src/repo/utils.rs", "Rust", 0, 0, 137, 0, 14, 36, 187
+"Total", "-", 17, 36, 679, 8, 116, 165, 1021

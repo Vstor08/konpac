@@ -4,7 +4,7 @@
 use rusqlite::{Connection, params, Result,Row};
 use std::path::{Path, PathBuf};
 use std::error::Error;
-
+use std::process::Command;
 
 #[derive(Debug)]
 pub struct DbPackageEntry {
@@ -112,7 +112,24 @@ pub fn check_exist_pkg(db_path: &Path, package_name: &str) -> Result<bool, Box<d
     }
 }
 
+// Функция для выполнения скрипта установки
+pub fn script_executor(path: &Path) {
 
+    let script_path = path.join("scripts").join("install");
+
+    let src_path = path.join("src");
+    let mask_path = path.join("mask");
+
+    // Выполняем скрипт установки
+    let _ = Command::new("bash")
+        .arg(script_path)
+        .arg(src_path)
+        .arg(mask_path)
+        .output()
+        .unwrap();
+
+
+}
 
 pub fn get_package_dir(package_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
     // Подключаемся к базе данных

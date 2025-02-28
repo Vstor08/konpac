@@ -13,12 +13,12 @@ use std::path::{Path, PathBuf};
 use std::fs;
 use std::fs::File;
 use tar::Archive;
-use std::process::Command;
+
 use std::io::{self, Read, Write};
 use std::error::Error;
 use fs_extra::dir::{copy, CopyOptions};
 use crate::package;
-use crate::package::utils::{add_package, check_exist_pkg, check_package_local, DbPackageEntry, PackageManifest};
+use crate::package::utils::{add_package, check_exist_pkg, check_package_local, DbPackageEntry, PackageManifest,script_executor};
 use crate::repo::utils::{get_repos, search_pkg, fetch_url, find_package_by_version};
 use crate::package::depencies::PackageQuery;
 use crate::consts::paths::{TMP_PATH,DB_PATH,REPOS_FILE};
@@ -73,24 +73,7 @@ fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Er
     })
 }
 
-// Функция для выполнения скрипта установки
-fn install_script_executor(path: &Path) {
-    println!("{:?}", path);
-    let script_path = path.join("install");
-    println!("{:?}", script_path);
-    let src_path = path.join("src");
-    let mask_path = path.join("mask");
 
-    // Выполняем скрипт установки
-    let output = Command::new("bash")
-        .arg(script_path)
-        .arg(src_path)
-        .arg(mask_path)
-        .output()
-        .unwrap();
-
-    println!("{:#?}", output);
-}
 
 // Функция для копирования маски в корневую директорию
 fn mask_copyer(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -207,7 +190,7 @@ pub async fn install_package_from_file(path: &Path) -> Result<(), Box<dyn Error>
     let temp_package_path: &Path = Path::new(&temp_path_str);
     let output_path_str = format!("{}/{}", tmpdir, hash);
     let output_path: &Path = Path::new(&output_path_str);
-    let repos_file: &Path = Path::new(REPOS_FILE);
+    // let repos_file: &Path = Path::new(REPOS_FILE);
     match unpack_package(package_path, output_path) {
         Ok(_) => println!("Unpacking Success"),
         Err(e) => eprintln!("Error in unpack: {}", e),
@@ -273,7 +256,7 @@ pub async fn install_package_from_file(path: &Path) -> Result<(), Box<dyn Error>
         };
         
     }
-    install_script_executor(&temp_package_path);
+    script_executor(&temp_package_path);
     mask_copyer(&temp_package_path).expect("Failed to copy mask");
     let var_package_path = match create_package_dir(&package) {
         Ok(path) => path,

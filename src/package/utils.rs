@@ -1,10 +1,8 @@
-
-
-
-use rusqlite::{Connection, params, Result,Row};
+use rusqlite::{Connection, params, Result, Row};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::process::Command;
+use log::{info, error};
 
 #[derive(Debug)]
 pub struct DbPackageEntry {

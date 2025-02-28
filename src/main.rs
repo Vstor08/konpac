@@ -9,7 +9,20 @@ use repo::gen::generate_repo;          // Функция для генераци
 use clap::Parser;          // Библиотека для обработки аргументов командной строки
 use std::path::Path;        // Работа с путями
 use repo::utils::get_repos;            // Функция для получения репозиториев
-    // Асинхронные задержки (не используется в текущем коде)
+use log::{info, error};    // Логирование
+use pretty_env_logger::formatted_builder; // Логгер
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+fn setup_logger() {
+    INIT.call_once(|| {
+        formatted_builder()
+            .filter(None, log::LevelFilter::Info)
+            .init();
+    });
+}
+
 // Определяем структуру для обработки аргументов командной строки
 #[derive(Parser)]
 #[command(version)]
@@ -39,11 +52,14 @@ struct Args {
 // Основная асинхронная функция
 #[tokio::main]
 async fn main() {
+    // Настройка логгера
+    setup_logger();
+
     // Парсим аргументы командной строки
     let args = Args::parse();
 
     // Приветственное сообщение
-    println!("Welcome to konpac :)");
+    info!("Welcome to konpac :)");
 
     // Обрабатываем аргументы в зависимости от выбранной операции
     match (args.install, args.remove, args.gen_repo, args.get_repo, args.download) {
@@ -51,26 +67,26 @@ async fn main() {
         (Some(install_path), None, None, None, None) => {
             // Проверяем, есть ли права администратора
             if !is_elevated() {
-                eprintln!("Ошибка: Для установки пакета требуются права администратора!");
+                error!("Ошибка: Для установки пакета требуются права администратора!");
                 std::process::exit(1);
             }
             // Устанавливаем пакет из указанного файла
             let install_package_path = Path::new(&install_path);
             match install_package_from_file(install_package_path).await {
-                Ok(_) => println!("Installed Success"),
-                Err(e) => eprintln!("Error in installation: {}",e)
+                Ok(_) => info!("Installed Success"),
+                Err(e) => error!("Error in installation: {}", e)
             };
         },
         // Удаление пакета по имени
         (None, Some(package_name), None, None, None) => {
             // Проверяем, есть ли права администратора
             if !is_elevated() {
-                eprintln!("Ошибка: Для удаления пакета требуются права администратора!");
+                error!("Ошибка: Для удаления пакета требуются права администратора!");
                 std::process::exit(1);
             }
             // Удаляем пакет и обрабатываем возможные ошибки
             uninstall_package(package_name).unwrap_or_else(|e| {
-                eprintln!("Ошибка удаления пакета: {}", e);
+                error!("Ошибка удаления пакета: {}", e);
                 std::process::exit(1);
             });
         },
@@ -88,14 +104,14 @@ async fn main() {
         // Установка пакета из репозитория
         (None, None, None, None, Some(package_name)) => {
             // Проверяем, есть ли права администратора
-            if !is_elevated() {
-                eprintln!("Ошибка: Для установки пакета требуются права администратора!");
+            if (!is_elevated()) {
+                error!("Ошибка: Для установки пакета требуются права администратора!");
                 std::process::exit(1);
             }
             // Устанавливаем пакет из репозитория и обрабатываем результат
             match install_from_repo(&package_name).await {
-                Ok(_) => { println!("Installing success") },
-                Err(e) => { eprintln!("Error in package install: {}",e) }
+                Ok(_) => { info!("Installing success") },
+                Err(e) => { error!("Error in package install: {}", e) }
             };
         },
         // Обработка недопустимых комбинаций аргументов

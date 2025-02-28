@@ -1,9 +1,8 @@
 use std::fs;
 use std::path::Path;
 use std::io::{self, BufRead};
-use super::utils::{del_package,get_package_dir,script_executor};
-
-
+use super::utils::{del_package, get_package_dir, script_executor};
+use log::{info, error};
 
 pub fn uninstall_package(package_name: String) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Получаем путь к директории пакета

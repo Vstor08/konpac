@@ -5,6 +5,7 @@ use rusqlite::{Connection, params, Result,Row};
 use std::path::{Path, PathBuf};
 use std::error::Error;
 
+
 #[derive(Debug)]
 pub struct DbPackageEntry {
     pub name: String,
@@ -110,6 +111,8 @@ pub fn check_exist_pkg(db_path: &Path, package_name: &str) -> Result<bool, Box<d
         None => Ok(false),    // Пакет не найден
     }
 }
+
+
 
 pub fn get_package_dir(package_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
     // Подключаемся к базе данных

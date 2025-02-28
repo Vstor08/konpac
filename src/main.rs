@@ -56,7 +56,10 @@ async fn main() {
             }
             // Устанавливаем пакет из указанного файла
             let install_package_path = Path::new(&install_path);
-            install_package_from_file(install_package_path).await;
+            match install_package_from_file(install_package_path).await {
+                Ok(_) => println!("Installed Success"),
+                Err(e) => eprintln!("Error in installation: {}",e)
+            };
         },
         // Удаление пакета по имени
         (None, Some(package_name), None, None, None) => {
@@ -90,7 +93,7 @@ async fn main() {
                 std::process::exit(1);
             }
             // Устанавливаем пакет из репозитория и обрабатываем результат
-            match install_from_repo(package_name).await {
+            match install_from_repo(&package_name).await {
                 Ok(_) => { println!("Installing success") },
                 Err(e) => { eprintln!("Error in package install: {}",e) }
             };

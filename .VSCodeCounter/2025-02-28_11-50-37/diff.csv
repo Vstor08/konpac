@@ -1,0 +1,13 @@
+"filename", "language", "Markdown", "Rust", "YAML", "comment", "blank", "total"
+"/home/vadim/konpac/README.md", "Markdown", 2, 0, 0, 0, 0, 2
+"/home/vadim/konpac/example/lmms/package.yml", "YAML", 0, 0, 0, 0, 1, 1
+"/home/vadim/konpac/src/consts.rs", "Rust", 0, 1, 0, 0, 0, 1
+"/home/vadim/konpac/src/consts/paths.rs", "Rust", 0, 3, 0, 0, 2, 5
+"/home/vadim/konpac/src/main.rs", "Rust", 0, 4, 0, 0, -2, 2
+"/home/vadim/konpac/src/package.rs", "Rust", 0, 1, 0, 0, 0, 1
+"/home/vadim/konpac/src/package/depencies.rs", "Rust", 0, -46, 0, -4, -9, -59
+"/home/vadim/konpac/src/package/install.rs", "Rust", 0, 45, 0, -4, -6, 35
+"/home/vadim/konpac/src/package/update.rs", "Rust", 0, 0, 0, 0, 1, 1
+"/home/vadim/konpac/src/package/utils.rs", "Rust", 0, 6, 0, 0, 4, 10
+"/home/vadim/konpac/src/repo/utils.rs", "Rust", 0, 30, 0, 5, 5, 40
+"Total", "-", 2, 44, 0, -3, -4, 39

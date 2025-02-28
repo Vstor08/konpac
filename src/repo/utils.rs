@@ -126,9 +126,49 @@ fn find_package_with_ver(
 }
 
 
+pub async fn find_package_by_version(
+    package_name: &str,
+    version: &str,
+    comparison_operator: &str,
+    repo: Repository
+) -> Result<Option<DbPackageEntry>, Box<dyn std::error::Error>> {
+    let db_str_path = format!("/tmp/{}.db", repo.name);
+    let db_path = Path::new(&db_str_path);
+    
+    let db_link = format!("{}/packages.db",repo.url);
+    match fetch_url(db_link, &db_path).await {
+        Ok(_) => { println!("fetch file success") },
+        Err(e) => { eprintln!("Error in fetch file: {}",e)} 
+    };
+    // Открываем соединение с базой данных
+    let conn = Connection::open(db_path)?;
+
+    // Формируем SQL-запрос на основе оператора сравнения
+    let query = match comparison_operator {
+        "=" => "SELECT name, version, path FROM packages WHERE name = ?1 AND version = ?2",
+        "<" => "SELECT name, version, path FROM packages WHERE name = ?1 AND version < ?2",
+        ">" => "SELECT name, version, path FROM packages WHERE name = ?1 AND version > ?2",
+        "<=" => "SELECT name, version, path FROM packages WHERE name = ?1 AND version <= ?2",
+        ">=" => "SELECT name, version, path FROM packages WHERE name = ?1 AND version >= ?2",
+        _ => return Err("Неподдерживаемый оператор сравнения. Используйте =, <, >, <=, >=".into()),
+    };
+
+    // Подготавливаем запрос
+    let mut stmt = conn.prepare(query)?;
+
+    // Выполняем запрос с параметрами
+    let mut rows = stmt.query([package_name, version])?;
+
+    // Обрабатываем результат
+    if let Some(row) = rows.next()? {
+        Ok(Some(DbPackageEntry::from_row(&row)?))
+    } else {
+        Ok(None)
+    }
+}
 
 
-pub async fn search_pkg(pkg_name: String, repo: Repository) -> std::result::Result<DbPackageEntry, Box<dyn std::error::Error>> {
+pub async fn search_pkg(pkg_name: &str, repo: Repository) -> std::result::Result<DbPackageEntry, Box<dyn std::error::Error>> {
     let db_str_path = format!("/tmp/{}.db", repo.name);
     let db_path = Path::new(&db_str_path);
     

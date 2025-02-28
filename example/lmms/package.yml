@@ -1,4 +1,4 @@
 name: lmms
 version: 1.2.2
 depens:
-  - "xmnf>=1.0.0"
+  - "xmnf>=0.1.0"

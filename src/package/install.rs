@@ -19,9 +19,9 @@ use std::error::Error;
 use fs_extra::dir::{copy, CopyOptions};
 use crate::package;
 use crate::package::utils::{add_package, check_exist_pkg, check_package_local, DbPackageEntry, PackageManifest};
-use crate::repo::utils::{get_repos, search_pkg, fetch_url};
-use crate::package::depencies::Dependency;
-use crate::consts::paths::{TMP_PATH,DB_PATH};
+use crate::repo::utils::{get_repos, search_pkg, fetch_url, find_package_by_version};
+use crate::package::depencies::PackageQuery;
+use crate::consts::paths::{TMP_PATH,DB_PATH,REPOS_FILE};
 use walkdir::WalkDir;
 use version_compare::Version;
 
@@ -198,7 +198,7 @@ fn create_package_list(
 }
 
 // Функция для установки пакета из файла
-pub async fn install_package_from_file(path: &Path) {
+pub async fn install_package_from_file(path: &Path) -> Result<(), Box<dyn Error>> {
     let tmpdir = String::from(TMP_PATH);
     let db_path: &Path = Path::new(DB_PATH);
     let hash: String = hash_package(&path).unwrap();
@@ -207,14 +207,11 @@ pub async fn install_package_from_file(path: &Path) {
     let temp_package_path: &Path = Path::new(&temp_path_str);
     let output_path_str = format!("{}/{}", tmpdir, hash);
     let output_path: &Path = Path::new(&output_path_str);
-
-    // Распаковываем пакет
+    let repos_file: &Path = Path::new(REPOS_FILE);
     match unpack_package(package_path, output_path) {
         Ok(_) => println!("Unpacking Success"),
         Err(e) => eprintln!("Error in unpack: {}", e),
     };
-
-    // Парсим manifest-файл
     let package = match parse_manifest(&temp_package_path) {
         Ok(manifest) => manifest,
         Err(e) => {
@@ -222,54 +219,80 @@ pub async fn install_package_from_file(path: &Path) {
             panic!("Error in read manifest");
         }
     };
-
-    //  Парсим зависимости пакета
-    if check_exist_pkg(db_path, &package.name).unwrap() {
+    if check_exist_pkg(db_path, &package.name)? {
         println!("Пакет уже установлен");
-        return;
+        return Ok(());
     }
-
-    // Устанавливаем зависимости
     for depen in &package.depens {
-        let depency: Dependency = Dependency::from_str(&depen).unwrap();
-        let package: DbPackageEntry = check_package_local(&db_path, &depency.name).unwrap().unwrap();
-        // TODO: Сделать адекватный контроль версий
-        if Version::from(&package.version).unwrap() == depency.version {
-
-        } else {
-            let _ = Box::pin(install_from_repo(depency.name)).await;
+        let depency: PackageQuery = PackageQuery::parse(&depen)?;
+    
+        // Проверяем, установлена ли зависимость
+        if check_exist_pkg(db_path, &depency.name)? {
+            println!("Зависимость уже установлена: {}", depency.name);
+            continue;
         }
+    
+        // Получаем список репозиториев
+        let repositories = get_repos(Path::new("/etc/konpac/repos"));
+    
+        // Ищем пакет в репозиториях
+        let mut package = None;
+        for repo in repositories {
+            match find_package_by_version(&depency.name, &depency.version, &depency.comparison_operator, repo).await {
+                Ok(Some(pkg)) => {
+                    package = Some(pkg);
+                    break; // Выходим из цикла, если пакет найден
+                }
+                Ok(None) => {
+                    // Пакет не найден в этом репозитории, продолжаем поиск
+                    continue;
+                }
+                Err(e) => {
+                    eprintln!("Error searching in repository: {}", e);
+                    continue; // Продолжаем поиск в следующем репозитории
+                }
+            }
+        }
+    
+        // Проверяем, был ли найден пакет
+        let package = match package {
+            Some(pkg) => pkg, // Пакет найден
+            None => {
+                println!("Dependency not found in any repository: {}", depency.name);
+                panic!()
+            }
+        };
+    
+        // Устанавливаем пакет с использованием Box::pin
+        match Box::pin(install_from_repo(&package.name)).await {
+            Ok(_) => println!("Dependency installed successfully: {}", package.name),
+            Err(e) => {
+                eprintln!("Error installing dependency {}: {}", package.name, e);
+                continue; // Пропускаем эту зависимость
+            }
+        };
         
     }
-
-    // Выполняем скрипт установки
     install_script_executor(&temp_package_path);
-
-    // Копируем маску
     mask_copyer(&temp_package_path).expect("Failed to copy mask");
-
-    // Создаем директорию пакета
     let var_package_path = match create_package_dir(&package) {
         Ok(path) => path,
         Err(_) => panic!("Error in create package path"),
     };
     println!("{:?}", var_package_path);
-
-    // Создаем список файлов пакета
     match create_package_list(&temp_package_path.join("mask"), &var_package_path) {
         Ok(_) => { println!("Package list created succes") },
         Err(e) => { eprintln!("Error in creating package list: {}",e); panic!() }
     };
-
-    // Добавляем пакет в базу данных
     match add_package(&package, &var_package_path, &db_path) {
         Ok(_) => println!("Database write Success"),
         Err(e) => eprintln!("Error in write Data to db: {}", e),
     };
+    Ok(())
 }
 
 // Функция для установки пакета из репозитория
-pub async fn install_from_repo(name: String) -> Result<(), Box<dyn Error>> {
+pub async fn install_from_repo(name: &str) -> Result<(), Box<dyn Error>> {
     let db_path: &Path = Path::new(DB_PATH);
     if check_exist_pkg(db_path, &name).unwrap() {
         println!("Пакет уже установлен");
@@ -281,7 +304,7 @@ pub async fn install_from_repo(name: String) -> Result<(), Box<dyn Error>> {
     // Ищем пакет в репозиториях
     let mut package = None;
     for repo in repositories {
-        match search_pkg(name.clone(), repo).await {
+        match search_pkg(name, repo).await {
             Ok(pkg) => {
                 package = Some(pkg);
                 break; // Выходим из цикла, если пакет найден
@@ -309,7 +332,10 @@ pub async fn install_from_repo(name: String) -> Result<(), Box<dyn Error>> {
     println!("{:?}", package_file_name);
 
     // Устанавливаем пакет
-    install_package_from_file(&package_file_path).await;
+    match install_package_from_file(&package_file_path).await {
+        Ok(_) => println!("Installed Success"),
+        Err(e) => eprintln!("Error in installation: {}",e)
+    };
     println!("Package downloaded to: {:#?}", package_file_name);
 
     Ok(())

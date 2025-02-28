@@ -12,14 +12,31 @@ use repo::utils::get_repos;            // Функция для получени
 use log::{info, error};    // Логирование
 use pretty_env_logger::formatted_builder; // Логгер
 use std::sync::Once;
+use std::io::Write;
+use log::Level;
 
 static INIT: Once = Once::new();
 
 fn setup_logger() {
     INIT.call_once(|| {
-        formatted_builder()
-            .filter(None, log::LevelFilter::Info)
-            .init();
+        let mut builder = formatted_builder();
+        builder.filter(None, log::LevelFilter::Info);
+        builder.format(|buf, record| {
+            let mut style = buf.style();
+            match record.level() {
+                Level::Error => style.set_color(pretty_env_logger::env_logger::fmt::Color::Red),
+                Level::Warn => style.set_color(pretty_env_logger::env_logger::fmt::Color::Yellow),
+                Level::Info => style.set_color(pretty_env_logger::env_logger::fmt::Color::Green),
+                Level::Debug => style.set_color(pretty_env_logger::env_logger::fmt::Color::Blue),
+                Level::Trace => style.set_color(pretty_env_logger::env_logger::fmt::Color::Magenta),
+            };
+            if cfg!(debug_assertions) {
+                writeln!(buf, "{} {} > {}", style.value(record.level()), record.target(), record.args())
+            } else {
+                writeln!(buf, "{} > {}", style.value(record.level()), record.args())
+            }
+        });
+        builder.init();
     });
 }
 
@@ -46,7 +63,11 @@ struct Args {
 
     /// Установить пакет из репозитория
     #[arg(short, long)]
-    download: Option<String>
+    download: Option<String>,
+
+    /// Установить пакет без подтверждения
+    #[arg(long)]
+    yes: bool,
 }
 
 // Основная асинхронная функция
@@ -72,7 +93,7 @@ async fn main() {
             }
             // Устанавливаем пакет из указанного файла
             let install_package_path = Path::new(&install_path);
-            match install_package_from_file(install_package_path).await {
+            match install_package_from_file(install_package_path, args.yes).await {
                 Ok(_) => info!("Installed Success"),
                 Err(e) => error!("Error in installation: {}", e)
             };
@@ -104,12 +125,12 @@ async fn main() {
         // Установка пакета из репозитория
         (None, None, None, None, Some(package_name)) => {
             // Проверяем, есть ли права администратора
-            if (!is_elevated()) {
+            if !is_elevated() {
                 error!("Ошибка: Для установки пакета требуются права администратора!");
                 std::process::exit(1);
             }
             // Устанавливаем пакет из репозитория и обрабатываем результат
-            match install_from_repo(&package_name).await {
+            match install_from_repo(&package_name, args.yes).await {
                 Ok(_) => { info!("Installing success") },
                 Err(e) => { error!("Error in package install: {}", e) }
             };

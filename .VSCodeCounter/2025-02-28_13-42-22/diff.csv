@@ -1,0 +1,6 @@
+"filename", "language", "Rust", "comment", "blank", "total"
+"/home/vadim/konpac/src/package.rs", "Rust", 1, 0, 0, 1
+"/home/vadim/konpac/src/package/build.rs", "Rust", 0, 0, 1, 1
+"/home/vadim/konpac/src/package/install.rs", "Rust", -18, -1, 0, -19
+"/home/vadim/konpac/src/package/utils.rs", "Rust", 12, 2, 3, 17
+"Total", "-", -5, 1, 4, 0

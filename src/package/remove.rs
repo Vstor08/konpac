@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::io::{self, BufRead};
-use super::utils::{del_package,get_package_dir};
+use super::utils::{del_package,get_package_dir,script_executor};
 
 
 
@@ -32,7 +32,7 @@ pub fn uninstall_package(package_name: String) -> Result<(), Box<dyn std::error:
     }
 
     // 3. Удаление данных из БД
-    del_package(package_name)?;
+    
 
     // 4. Удаление директории пакета
     if package_dir.exists() {
@@ -41,5 +41,7 @@ pub fn uninstall_package(package_name: String) -> Result<(), Box<dyn std::error:
         })?;
     }
 
+    script_executor(&package_dir, "remove");
+    del_package(package_name)?;
     Ok(())
 }

@@ -113,9 +113,9 @@ pub fn check_exist_pkg(db_path: &Path, package_name: &str) -> Result<bool, Box<d
 }
 
 // Функция для выполнения скрипта установки
-pub fn script_executor(path: &Path) {
+pub fn script_executor(path: &Path,script: &str) {
 
-    let script_path = path.join("scripts").join("install");
+    let script_path = path.join("scripts").join(script);
 
     let src_path = path.join("src");
     let mask_path = path.join("mask");

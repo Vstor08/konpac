@@ -17,13 +17,11 @@ use tar::Archive;
 use std::io::{self, Read, Write};
 use std::error::Error;
 use fs_extra::dir::{copy, CopyOptions};
-use crate::package;
-use crate::package::utils::{add_package, check_exist_pkg, check_package_local, DbPackageEntry, PackageManifest,script_executor};
+use crate::package::utils::{add_package, check_exist_pkg, PackageManifest,script_executor};
 use crate::repo::utils::{get_repos, search_pkg, fetch_url, find_package_by_version};
 use crate::package::depencies::PackageQuery;
 use crate::consts::paths::{TMP_PATH,DB_PATH,REPOS_FILE};
 use walkdir::WalkDir;
-use version_compare::Version;
 
 // Функция для парсинга manifest-файла пакета
 fn parse_manifest(path: &Path) -> Result<PackageManifest, Box<dyn std::error::Error>> {
@@ -138,6 +136,21 @@ fn unpack_package(path: &Path, out: &Path) -> Result<(), std::io::Error> {
 
     // Распаковываем архив
     archive.unpack(out)?;
+    Ok(())
+}
+
+fn copy_scripts(
+    temp_pkg: &Path,
+    package_dir: &Path
+) -> Result<(), std::io::Error> {
+    let scripts_path = temp_pkg.join("scripts");
+    let options = CopyOptions::new()
+        .overwrite(true)
+        .content_only(true)
+        .copy_inside(true);
+    let dest = package_dir.join("scripts");
+    copy(scripts_path, dest, &options);
+
     Ok(())
 }
 
@@ -256,13 +269,16 @@ pub async fn install_package_from_file(path: &Path) -> Result<(), Box<dyn Error>
         };
         
     }
-    script_executor(&temp_package_path);
+    script_executor(&temp_package_path,"install");
     mask_copyer(&temp_package_path).expect("Failed to copy mask");
     let var_package_path = match create_package_dir(&package) {
         Ok(path) => path,
         Err(_) => panic!("Error in create package path"),
     };
-    println!("{:?}", var_package_path);
+    match copy_scripts(temp_package_path, &var_package_path) {
+        Ok(_) => { println!("Scripts copy success") },
+        Err(e) => { println!("Error in copy scripts: {}",e) }
+    };
     match create_package_list(&temp_package_path.join("mask"), &var_package_path) {
         Ok(_) => { println!("Package list created succes") },
         Err(e) => { eprintln!("Error in creating package list: {}",e); panic!() }
